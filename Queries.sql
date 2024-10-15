@@ -170,7 +170,7 @@ with cte as (
       On oh.noc = or.noc
     Where medal <> 'NA'
     Group by region
-)
+) 
 
 Select country, no_of_medals
 From cte
@@ -196,11 +196,80 @@ Join OLYMPICS_HISTORY_NOC_REGIONS onr
 --15. List down total gold, silver and broze medals won by each country corresponding to each olympic games.
 
 
-Select 
+Select   
+  games,
+  region as country,
+  Sum(
+    case
+      when medal = 'Gold' then 1 else 0 end) as gold,
+    Sum(
+    case
+      when medal = 'Silver' then 1 else 0 end) as silver ,
+    Sum(
+    case
+      when medal = 'Bronze' then 1 else 0 end) as Bronze
 From OLYMPICS_HISTORY oh
 Join OLYMPICS_HISTORY_NOC_REGIONS onr
-  On oh.noc = ohr.noc 
- 
+  On oh.noc = onr.noc 
+Group by games, region
+
+
+--16. Identify which country won the most gold, most silver and most bronze medals in each olympic games.
+
+        by country
+games gold silver bronze
+
+
+--17. Identify which country won the most gold, most silver, most bronze medals and the most medals in each olympic games.
+
+
+
+
+
+
+
+
+-- 18. Which countries have never won gold medal but have won silver/bronze medals?
+
+Select 
+  region as country,
+  sum(
+    case 
+      when medal = 'gold' then 1 else 0 end) as gold, 
+  sum(
+    case 
+      when medal = 'silver' then 1 else 0 end) as silver,
+ sum(
+    case 
+      when medal = 'bronze' then 1 else 0 end) as bronze
+
+From OLYMPICS_HISTORY oh
+Join OLYMPICS_HISTORY_NOC_REGIONS ohr
+  On oh.noc = ohr.noc
+Where medal <> 'gold'
+
+
+--19. In which Sport/event, India has won highest medals.
+
+Select sport, count(medal) as no_of_medal
+From OLYMPICS_HISTORY
+Where team = 'India' and
+      medal <> 'NA'
+group by sport
+Order by no_of_medal desc
+Limit 1
+
+
+--20. Break down all olympic games where india won medal for Hockey and how many medals in each olympic games.
+
+Select team, sport, games, count(medal) as tot_medals
+From 
+OLYMPICS_HISTORY
+Where team = 'India' and
+      sport = 'Hockey' and
+      medal <> 'NA'
+Group by team, sport, games
+Order by tot_medals desc
 
 
 
