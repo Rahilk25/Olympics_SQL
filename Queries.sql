@@ -54,7 +54,7 @@ Select
 From cte 
 
   
-
+---
 
 WITH cte AS (
     SELECT
@@ -219,6 +219,49 @@ Group by games, region
         by country
 games gold silver bronze
 
+With cte as (
+Select games, region as country, count(medal) as gold,
+  row_number() over(order by count(medal) desc) as rw
+From OLYMPICS_HISTORY
+Join OLYMPICS_HISTORY_NOC_REGIONS onr
+  On oh.noc = onr.noc
+Where medal = 'Gold'
+Group by games, region
+ ),
+  
+cte2 as (
+Select games, region as country, count(medal) as silver,
+  row_number() over(order by count(medal) desc) as rw
+From OLYMPICS_HISTORY
+Join OLYMPICS_HISTORY_NOC_REGIONS onr
+  On oh.noc = onr.noc
+Where medal = 'Silver'
+Group by games, region),
+  
+cte3 as (
+Select games, region as country, count(medal) as bronze,
+  row_number() over(order by count(medal) desc) as rw
+From OLYMPICS_HISTORY
+Join OLYMPICS_HISTORY_NOC_REGIONS onr
+  On oh.noc = onr.noc
+Where medal = 'Bronze'
+Group by games, region)
+
+Select 
+  cte.games,
+  concat(cte.country,' - ', gold) as gold,
+  concat(cte2.country,' - ', silver) as silver,
+  concat(cte3.country,' - ', bronze) as bronze
+From cte
+Join cte2 
+  On cte.rw = cte2.rw
+Join cte3
+  On cte2.rw = cte3.rw
+order by cte.games 
+
+
+
+  
 
 --17. Identify which country won the most gold, most silver, most bronze medals and the most medals in each olympic games.
 
