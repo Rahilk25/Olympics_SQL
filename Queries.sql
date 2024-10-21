@@ -6,7 +6,8 @@ From OLYMPICS_HISTORY;
 --2. List down all Olympics games held so far.
 
 Select distinct year, season, city
-From OLYMPICS_HISTORY;
+From OLYMPICS_HISTORY
+order by year;
 
 --3. Mention the total no of nations who participated in each olympics game?
 
@@ -28,17 +29,16 @@ cte2 as (
   From cte)
 
 Select 
-  case
-    When no_of_countries = max_no then concat(games, ' - ', max_no) end as higest_countries,
-  case 
-    when no_of_countries = min_no then  concat(games, ' - ', min_no) end as lowest_countries
+ concat(t1.games, ' - ', max_no)  as higest_countries,
+  concat(t2.games, ' - ', min_no)  as higest_countries
+
 From  cte2
-Join cte 
-  
+Join cte t1 On t1.no_of_countries = cte2.max_no 
+Join cte t2 on t2.no_of_countries = cte2.min_no
 
 --4. Which year saw the highest and lowest no of countries participating in olympics?
 
-  With cte as (
+ With cte as (
       Select
         games,
         count(distinct noc) as no_of_countries
@@ -47,35 +47,12 @@ Join cte
 )
 
 Select
-  case
-    when no_of_countries = (Select min(no_of_countries) From cte) then concat(games, ' - ', no_of_countries) end as lowest_countries,
-   case
-    when no_of_countries = (Select max(no_of_countries) From cte) then concat(games, ' - ', no_of_countries) end as highest_countries
+  max(case
+    when no_of_countries = (Select min(no_of_countries) From cte) then concat(games, ' - ', no_of_countries) end) as lowest_countries,
+ max(  case
+    when no_of_countries = (Select max(no_of_countries) From cte) then concat(games, ' - ', no_of_countries) end) as highest_countries
 From cte 
 
-  
----
-
-WITH cte AS (
-    SELECT
-        games,
-        COUNT(DISTINCT noc) AS no_of_countries
-    FROM OLYMPICS_HISTORY
-    GROUP BY games
-)
-
-SELECT
-    games,
-    no_of_countries,
-    CASE
-        WHEN no_of_countries = (SELECT MIN(no_of_countries) FROM cte) THEN CONCAT(games, ' - ', no_of_countries) 
-    END AS lowest_countries,
-    CASE
-        WHEN no_of_countries = (SELECT MAX(no_of_countries) FROM cte) THEN CONCAT(games, ' - ', no_of_countries) 
-    END AS highest_countries
-FROM cte
-WHERE no_of_countries = (SELECT MIN(no_of_countries) FROM cte)
-   OR no_of_countries = (SELECT MAX(no_of_countries) FROM cte);
 
 
 --5. Which nation has participated in all of the olympic games?
@@ -104,7 +81,7 @@ Having count(distinct games) = (Select count( distinct games)
 Select sport, count(distinct games) as cnt_games
 From OLYMPICS_HISTORY
 Group by sport
-Having cnt_games = 1
+Having count(distinct games) = 1
 
 
 --8. Fetch the total no of sports played in each olympic games.
@@ -112,14 +89,19 @@ Having cnt_games = 1
 Select games, count(distinct sport) as no_of_sport
 From OLYMPICS_HISTORY
 Group by games
-order by no_of_sports desc
+order by no_of_sport desc
 
 --9. Fetch details of the oldest athletes to win a gold medal.
 
 Select *
+From
+(Select *,
+rank() over(order by age desc) as rnk
 From OLYMPICS_HISTORY
 Where medal = 'Gold' and
-      age = (Select max(age) from OLYMPICS_HISTORY)
+       age <> 'NA') a
+
+Where rnk = 1
 
 
 --10. Find the Ratio of male and female athletes participated in all olympic games.
@@ -191,7 +173,10 @@ Select
     when medal = 'Bronze' then 1 else 0 end) as Bronze
 From OLYMPICS_HISTORY oh
 Join OLYMPICS_HISTORY_NOC_REGIONS onr
-  On oh.noc = ohr.noc
+  On oh.noc = onr.noc
+Group by country
+order by gold desc
+
 
 --15. List down total gold, silver and broze medals won by each country corresponding to each olympic games.
 
