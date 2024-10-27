@@ -131,7 +131,7 @@ order by tot_gold desc
 
 with cte as (
 Select name, count(medal) as no_medals,
-    dense_rank() over(order by no_medals desc) as rnk
+    dense_rank() over(order by count(medal) desc) as rnk
 From OLYMPICS_HISTORY
 Where medal <> 'NA'
 Group by name
@@ -146,7 +146,7 @@ order by no_medals desc
 
 with cte as (
     Select region as country, count(medal) as no_of_medals,
-            dense_rank() over(order by no_of_medals desc) as rnk
+            dense_rank() over(order by count(medal) desc) as rnk
     From OLYMPICS_HISTORY oh
     Join OLYMPICS_HISTORY_NOC_REGIONS ohr
       On oh.noc = or.noc
@@ -204,45 +204,51 @@ Group by games, region
         by country
 games gold silver bronze
 
-With cte as (
-Select games, region as country, count(medal) as gold,
-  row_number() over(order by count(medal) desc) as rw
-From OLYMPICS_HISTORY
-Join OLYMPICS_HISTORY_NOC_REGIONS onr
-  On oh.noc = onr.noc
-Where medal = 'Gold'
-Group by games, region
- ),
-  
-cte2 as (
-Select games, region as country, count(medal) as silver,
-  row_number() over(order by count(medal) desc) as rw
-From OLYMPICS_HISTORY
-Join OLYMPICS_HISTORY_NOC_REGIONS onr
-  On oh.noc = onr.noc
-Where medal = 'Silver'
-Group by games, region),
-  
-cte3 as (
-Select games, region as country, count(medal) as bronze,
-  row_number() over(order by count(medal) desc) as rw
-From OLYMPICS_HISTORY
-Join OLYMPICS_HISTORY_NOC_REGIONS onr
-  On oh.noc = onr.noc
-Where medal = 'Bronze'
-Group by games, region)
+WITH cte_gold AS (
+    SELECT 
+        games,
+        region AS country,
+        COUNT(medal) AS gold,
+        ROW_NUMBER() OVER(PARTITION BY games ORDER BY COUNT(medal) DESC) AS rw
+    FROM OLYMPICS_HISTORY oh
+    JOIN OLYMPICS_HISTORY_NOC_REGIONS onr ON oh.noc = onr.noc
+    WHERE medal = 'Gold'
+    GROUP BY games, region
+),
+cte_silver AS (
+    SELECT 
+        games,
+        region AS country,
+        COUNT(medal) AS silver,
+        ROW_NUMBER() OVER(PARTITION BY games ORDER BY COUNT(medal) DESC) AS rw
+    FROM OLYMPICS_HISTORY oh
+    JOIN OLYMPICS_HISTORY_NOC_REGIONS onr ON oh.noc = onr.noc
+    WHERE medal = 'Silver'
+    GROUP BY games, region
+),
+cte_bronze AS (
+    SELECT 
+        games,
+        region AS country,
+        COUNT(medal) AS bronze,
+        ROW_NUMBER() OVER(PARTITION BY games ORDER BY COUNT(medal) DESC) AS rw
+    FROM OLYMPICS_HISTORY oh
+    JOIN OLYMPICS_HISTORY_NOC_REGIONS onr ON oh.noc = onr.noc
+    WHERE medal = 'Bronze'
+    GROUP BY games, region
+)
 
-Select 
-  cte.games,
-  concat(cte.country,' - ', gold) as gold,
-  concat(cte2.country,' - ', silver) as silver,
-  concat(cte3.country,' - ', bronze) as bronze
-From cte
-Join cte2 
-  On cte.rw = cte2.rw
-Join cte3
-  On cte2.rw = cte3.rw
-order by cte.games 
+SELECT 
+    g.games,
+    CONCAT(g.country, ' - ', g.gold) AS gold,
+    CONCAT(s.country, ' - ', s.silver) AS silver,
+    CONCAT(b.country, ' - ', b.bronze) AS bronze
+FROM cte_gold g
+JOIN cte_silver s ON g.games = s.games AND g.rw = s.rw
+JOIN cte_bronze b ON s.games = b.games AND s.rw = b.rw
+WHERE g.rw = 1  -- Ensures only the top country per games and medal type
+order by g.games 
+
 
 
 
