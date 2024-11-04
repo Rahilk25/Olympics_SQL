@@ -106,6 +106,9 @@ Where rnk = 1
 
 --10. Find the Ratio of male and female athletes participated in all olympic games.
 
+Select round(sum(case when sex = 'M' then 1 else 0 end):: decimal / sum(case when sex = 'F' then 1 else 0 end)::decimal,2) as ratio
+From olympics_history
+
 
 
 
@@ -256,6 +259,53 @@ order by g.games
 
 --17. Identify which country won the most gold, most silver, most bronze medals and the most medals in each olympic games.
 
+
+
+with gold as
+(Select games,region, count(medal) as gold, row_number() over(partition by games order by count(medal) desc) as rw
+From olympics_history oh
+Join olympics_history_noc_regions hr
+Using(noc)
+Where medal = 'Gold'
+Group by games,region
+),
+silver as
+(Select games,region, count(medal) as silver, row_number() over(partition by games order by count(medal) desc) as rw
+From olympics_history oh
+Join olympics_history_noc_regions hr
+Using(noc)
+Where medal = 'Silver'
+Group by games,region),
+
+bronze as
+(Select games,region, count(medal) as bronze, row_number() over(partition by games order by count(medal) desc) as rw
+From olympics_history oh
+Join olympics_history_noc_regions hr
+Using(noc)
+Where medal = 'Bronze'
+Group by games,region),
+
+medals as
+(Select games,region, count(medal) as medals, row_number() over(partition by games order by count(medal) desc) as rw
+From olympics_history oh
+Join olympics_history_noc_regions hr
+Using(noc)
+Where medal <> 'NA'
+Group by games,region
+)
+
+SELECT games, concat(g.region,' - ',gold) as max_gold,  
+      concat(s.region,' - ',silver) as max_silver,  
+      concat(b.region,' - ',bronze) as max_bronze,  
+      concat(m.region,' - ',medals) as max_medals
+From gold g
+Join silver s
+using(games)
+Join bronze b
+using(games)
+Join medals m
+using(games)
+Where g.rw = 1 and s.rw = 1 and b.rw = 1 and m.rw = 1  
 
 
 
